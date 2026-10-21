@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GBP Scraper</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128205;</text></svg>" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">&#128205;</span>
+      <div>
+        <h1>GBP Scraper</h1>
+        <p class="sub">Google Business Profile leads by industry &amp; place</p>
+      </div>
+    </div>
+    <div id="status" class="pill pill-idle">Idle</div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <form id="search-form" class="card">
+        <h2>New search</h2>
+
+        <label class="field">
+          <span>Industry / business type</span>
+          <input id="industry" name="industry" list="industry-list" placeholder="e.g. web development agencies" autocomplete="off" />
+          <datalist id="industry-list">
+            <option value="web development agencies"></option>
+            <option value="digital marketing agencies"></option>
+            <option value="restaurants"></option>
+            <option value="coffee shops"></option>
+            <option value="dentists"></option>
+            <option value="law firms"></option>
+            <option value="real estate agencies"></option>
+            <option value="plumbers"></option>
+            <option value="hotels"></option>
+            <option value="gyms"></option>
+            <option value="salons"></option>
+            <option value="accounting firms"></option>
+          </datalist>
+        </label>
+
+        <label class="field">
+          <span>Place</span>
+          <input id="place" name="place" list="place-list" placeholder="e.g. Nairobi, Kenya" autocomplete="off" />
+          <datalist id="place-list">
+            <option value="Nairobi, Kenya"></option>
+            <option value="Lagos, Nigeria"></option>
+            <option value="Accra, Ghana"></option>
+            <option value="London, UK"></option>
+            <option value="New York, USA"></option>
+            <option value="Dubai, UAE"></option>
+            <option value="Cape Town, South Africa"></option>
+          </datalist>
+        </label>
+
+        <div class="row">
+          <label class="field small">
+            <span>Max results</span>
+            <input id="max" type="number" min="1" max="500" value="20" />
+          </label>
+          <label class="field small">
+            <span>Limit mode</span>
+            <button type="button" id="all-toggle" class="btn ghost small toggle-btn" aria-pressed="false">Max only</button>
+          </label>
+        </div>
+        <p class="hint" id="all-hint">Stops at the max above. One Google search never returns more than ~120 results.</p>
+
+        <label class="check">
+          <input type="checkbox" id="area-mode" />
+          <span>Search a small area (street, road, district&hellip;)</span>
+        </label>
+
+        <div id="area-fields" class="area-fields hidden">
+          <label class="field">
+            <span>Area</span>
+            <input id="area" list="area-list" placeholder="e.g. Ngong Road, Nairobi" autocomplete="off" />
+            <datalist id="area-list">
+              <option value="Westlands, Nairobi"></option>
+              <option value="Ngong Road, Nairobi"></option>
+              <option value="Karen, Nairobi"></option>
+              <option value="Upper Hill, Nairobi"></option>
+              <option value="Kilimani, Nairobi"></option>
+              <option value="Lekki, Lagos"></option>
+              <option value="Victoria Island, Lagos"></option>
+            </datalist>
+          </label>
+          <div class="row">
+            <label class="field small">
+              <span>Radius (km)</span>
+              <input id="radius" type="number" min="0.2" max="25" step="0.5" value="3" />
+            </label>
+            <label class="field small">
+              <span>Tile size (km)</span>
+              <input id="tileKm" type="number" min="0.5" max="5" step="0.5" value="2" />
+            </label>
+          </div>
+          <label class="check">
+            <input type="checkbox" id="sub-areas" />
+            <span>Also scan Google&rsquo;s sub-areas</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="keep-outside" />
+            <span>Keep listings outside the area</span>
+          </label>
+          <p class="hint" id="area-hint">&nbsp;</p>
+        </div>
+
+        <label class="field">
+          <span>Delay (ms)</span>
+          <input id="delay" placeholder="800:2400" />
+        </label>
+
+        <label class="check">
+          <input type="checkbox" id="contact" checked />
+          <span>Discover email &amp; social links</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="headless" />
+          <span>Headless browser (less reliable)</span>
+        </label>
+
+        <details class="advanced">
+          <summary>Advanced</summary>
+          <label class="field">
+            <span>Proxy URL</span>
+            <input id="proxy" placeholder="http://user:pass@host:port" />
+          </label>
+          <label class="field">
+            <span>Proxy list file</span>
+            <input id="proxyFile" placeholder="proxies.txt" />
+          </label>
+        </details>
+
+        <p class="query-preview">Query: <code id="query-preview">—</code></p>
+        <p class="hint" id="area-summary" style="margin-top:-6px"></p>
+
+        <div class="actions">
+          <button type="submit" id="start" class="btn primary">Search</button>
+          <button type="button" id="stop" class="btn danger" disabled>Stop</button>
+        </div>
+        <p id="form-error" class="error hidden"></p>
+      </form>
+
+      <div class="card history">
+        <div class="history-head">
+          <h2>Past runs</h2>
+          <button type="button" id="refresh-runs" class="btn ghost small">Refresh</button>
+        </div>
+        <ul id="runs-list" class="runs-list"><li class="muted">Loading…</li></ul>
+      </div>
+    </aside>
+
+    <main class="content">
+      <section class="card progress-card">
+        <div class="progress-head">
+          <h2 id="progress-title">Live progress</h2>
+          <span id="progress-count" class="muted">0 / 0</span>
+        </div>
+        <div class="bar"><div id="bar-fill" class="bar-fill"></div></div>
+        <p id="current-listing" class="muted small">No active run.</p>
+        <pre id="log" class="log" aria-live="polite"></pre>
+      </section>
+
+      <section class="card results-card">
+        <div class="results-head">
+          <h2>Results <span id="results-count" class="muted"></span></h2>
+          <div class="export">
+            <button id="export-filtered" class="btn ghost small" disabled>Export filtered CSV</button>
+            <button id="copy-emails" class="btn ghost small" disabled>Copy emails</button>
+            <button id="export-csv" class="btn ghost small" disabled>CSV</button>
+            <button id="export-json" class="btn ghost small" disabled>JSON</button>
+          </div>
+        </div>
+
+        <div class="filters">
+          <input id="filter-text" placeholder="Filter name, address, email…" />
+          <label class="inline">Min rating
+            <select id="filter-rating">
+              <option value="0">Any</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
+              <option value="4.5">4.5+</option>
+            </select>
+          </label>
+          <label class="inline"><input type="checkbox" id="filter-email" /> Has email</label>
+          <label class="chip" title="Only show businesses with no website">
+            <input type="checkbox" id="filter-nowebsite" />
+            <span>No website</span>
+            <span id="nowebsite-count" class="badge">0</span>
+          </label>
+          <label class="inline"><input type="checkbox" id="filter-website" /> Has website</label>
+        </div>
+
+        <div class="table-wrap">
+          <table id="results-table">
+            <thead>
+              <tr>
+                <th data-sort="title">Name</th>
+                <th data-sort="category">Category</th>
+                <th data-sort="rating" class="num">Rating</th>
+                <th data-sort="reviewsCount" class="num">Reviews</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th title="Social profiles">Socials</th>
+                <th>Address</th>
+                <th data-sort="distanceKm" class="num">km</th>
+              </tr>
+            </thead>
+            <tbody id="results-body">
+              <tr><td colspan="9" class="muted center">No results yet — run a search.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="drawer" class="drawer hidden" role="dialog" aria-modal="true">
+    <div class="drawer-content">
+      <button id="drawer-close" class="drawer-close" aria-label="Close">&times;</button>
+      <div id="drawer-body"></div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

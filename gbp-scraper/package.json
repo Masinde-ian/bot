@@ -1,0 +1,17 @@
+{
+  "name": "gbp-scraper",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node scraper.js",
+    "ui": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Google Maps / GBP scraper (Playwright + stealth)",
+  "dependencies": {
+    "playwright": "^1.64.1",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}
